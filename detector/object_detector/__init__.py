@@ -1,3 +1,3 @@
 """Detector package"""
 from .detector import Detector
-from .detector import ImageError
+from .coco_categories import get_categories

@@ -3,11 +3,16 @@ from torchvision.models import detection
 import numpy as np
 import torch
 import cv2
-from object_detector.coco_categories import get_categories
+from .coco_categories import get_categories
 import warnings
+import base64
+from os import path
 
 # get rid of torch deprecation warnings
 warnings.filterwarnings("ignore", category=UserWarning)
+
+PATH = path.dirname(__file__)
+torch.hub.set_dir(PATH + '/hub')
 
 # available models for torch.vision
 RESNET = detection.fasterrcnn_resnet50_fpn
@@ -42,19 +47,30 @@ class Detector:
                                pretrained_backbone=True).to(self.device)
         self.model.eval()
 
-    def load_image(self, img_path):
-        """Load image from >img_path< and prepare it for detection"""
+    def load_image_from_file(self, image_path):
+        """Load image from file"""
         try:
-            self.image = cv2.imread(img_path)
-            width, height = self.image.shape[1], self.image.shape[0]
+            self.image = cv2.imread(image_path)
         except AttributeError as e:
             raise ImageError('Input image is missing!') from None
-        # resize big images
-        if width > 1200:
-            dim = (1200, int((1200 / width) * height))
+
+    def load_image_from_bytes(self, image_bytes):
+        """Load image from bytes"""
+        image_array = np.fromstring(image_bytes, dtype='uint8')
+        self.image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+
+    def image_resize(self, width_max=1200):
+        """If image is too big - resize it"""
+        width, height = self.image.shape[1], self.image.shape[0]
+        if width > width_max:
+            dim = (width_max, int((width_max / width) * height))
             self.image = cv2.resize(self.image, dim, interpolation=cv2.INTER_AREA)
+
+    def image_prepare(self):
+        """Process image for detection"""
+        # keep copy of original image - without processing
         self.orig = self.image.copy()
-        # process image for detection
+        # convert BGR to RGB
         self.image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
         self.image = self.image.transpose((2, 0, 1))
         self.image = np.expand_dims(self.image, axis=0)
@@ -81,14 +97,14 @@ class Detector:
             if idx in CARS and confidence > self.confidence:
                 count += 1
                 box = detections["boxes"][i].detach().cpu().numpy()
-                result['boxes'].append(box.astype("int"))
+                result['boxes'].append(box.astype("int").tolist())
                 result['labels'].append(f"{self.categories[idx - 1]['name']} {confidence * 100:.2f}%")
         result['count'] = count
         self.result = result
+        return result
 
-    def get_result_image(self, img_path):
-        """Draw boxes and put labels on the result image using result dict.
-        Save result image to JPG file."""
+    def get_result_image(self):
+        """Draw boxes and put labels on the result image using result dict."""
         count = self.result['count']
         # loop over boxes and labels
         for box, label in zip(self.result["boxes"], self.result['labels']):
@@ -100,14 +116,21 @@ class Detector:
         title = f'Count: {count}'
         cv2.putText(self.orig, title, (0, 30),
                     cv2.FONT_HERSHEY_DUPLEX, 1, COLOR, 3)
+
+    def save_result_image_to_file(self, image_path):
         # save result
-        cv2.imwrite(img_path, self.orig)
+        cv2.imwrite(image_path, self.orig)
+
+    def save_result_image_to_bytes(self):
+        _, encoded_img = cv2.imencode('.jpg', self.orig)
+        b64_encoded_img = base64.b64encode(encoded_img)
+        return b64_encoded_img
 
 
 if __name__ == '__main__':
     # test detector
     d = Detector()
-    d.load_image('images/test_1.jpg')
+    d.load_image_from_file('images/test_1.jpg')
     d.run_detection()
     d.get_result_image('images/result.jpg')
     print('Count: ', d.result['count'])
