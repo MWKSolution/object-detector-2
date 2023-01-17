@@ -35,17 +35,23 @@ class Detector:
     """Detector class"""
     def __init__(self, net_model=RESNET, confidence=0.5):
         """Initialize detection model"""
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.deviceCPU = torch.device("cpu")
+        self.deviceGPU = torch.device("cuda") if torch.cuda.is_available() else None
         # get categories from file
         self.categories = get_categories()
         self.confidence = confidence
         self.image = None
         self.orig = None
         self.result = None
-        self.model = net_model(pretrained=True,
-                               progress=True,
-                               pretrained_backbone=True).to(self.device)
-        self.model.eval()
+        self.modelCPU = net_model(pretrained=True,
+                                  progress=True,
+                                  pretrained_backbone=True).to(self.deviceCPU)
+        self.modelCPU.eval()
+        if self.deviceGPU:
+            self.modelGPU = net_model(pretrained=True,
+                                      progress=True,
+                                      pretrained_backbone=True).to(self.deviceGPU)
+            self.modelGPU.eval()
 
     def load_image_from_file(self, image_path):
         """Load image from file"""
@@ -77,16 +83,20 @@ class Detector:
         self.image = self.image / 255.0
         self.image = torch.FloatTensor(self.image)
 
-    def run_detection(self):
+    def run_detection(self, device='cpu'):
         """Run detection.
          result dict:
         'count' - number of detections
         'boxes'  - list of bounding boxes
         'labels - list of labels for boxes"""
         # send image to the device
-        self.image = self.image.to(self.device)
+        if device == 'gpu' and self.deviceGPU:
+            self.image = self.image.to(self.deviceGPU)
+            detections = self.modelGPU(self.image)[0]
+        else:
+            self.image = self.image.to(self.deviceCPU)
+            detections = self.modelCPU(self.image)[0]
         # run detection
-        detections = self.model(self.image)[0]
         # loop over detections
         result = dict(count=0, boxes=[], labels=[])
         count = 0
@@ -130,10 +140,13 @@ class Detector:
 if __name__ == '__main__':
     # test detector
     d = Detector()
-    d.load_image_from_file('images/test_1.jpg')
-    d.run_detection()
-    d.get_result_image('images/result.jpg')
-    print('Count: ', d.result['count'])
-    print('Boxes: ', d.result['boxes'])
-    print('Labels: ', d.result['labels'])
+    d.load_image_from_file('detector/object_detector/images/test_1.jpg')
+    d.image_resize()
+    d.image_prepare()
+    result = d.run_detection('any')
+    d.get_result_image()
+    d.save_result_image_to_file('detector/object_detector/images/test_1.jpg')
+    print('Count: ', result['count'])
+    print('Boxes: ', result['boxes'])
+    print('Labels: ', result['labels'])
 

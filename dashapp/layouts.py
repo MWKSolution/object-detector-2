@@ -7,7 +7,7 @@ load_indicator = dbc.Spinner(html.Div(id='loading'),
                              fullscreen=False,
                              color='danger')
 load_info = dbc.Modal([
-    dbc.ModalHeader(dbc.ModalTitle('Image loader')),
+    dbc.ModalHeader(dbc.ModalTitle('Detection')),
     dbc.ModalBody(dbc.Alert('', id='load-info-text', color='danger'))],
     id='load-info',
     scrollable=False,

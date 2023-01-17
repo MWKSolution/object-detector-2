@@ -21,8 +21,9 @@ def get_callbacks(app, end_point):
             if content_type == 'data:image/jpeg;base64':
                 img = base64.b64decode(content_data)
                 files = {'image': img}
+                params = {'device': 'cpu'}
                 try:
-                    r = post(end_point, files=files)
+                    r = post(end_point, params=params, files=files)
                     r.raise_for_status()
                 except exceptions.HTTPError as e:
                     return None, None, True, f'API error! {r.status_code} {r.content.decode()}', src

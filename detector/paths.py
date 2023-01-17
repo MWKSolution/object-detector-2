@@ -8,12 +8,12 @@ def get_paths(app, detector):
         return {'message': 'detector API'}
 
     @app.post('/image')
-    def send_image(image: UploadFile = File(...)):
+    def send_image(device: str, image: UploadFile = File(...)):
         contents = image.file.read()
         detector.load_image_from_bytes(contents)
         detector.image_resize()
         detector.image_prepare()
-        result = detector.run_detection()
+        result = detector.run_detection(device)
         detector.get_result_image()
         image_bytes = detector.save_result_image_to_bytes()
         # return result

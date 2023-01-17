@@ -18,7 +18,7 @@ app.layout = app_layout
 server = app.server
 
 # detector API end point
-DET_API_URL = r'http://127.0.0.1:8066/image'
+DET_API_URL = r'http://detapi:8066/image'
 
 # Dash app callbacks import
 get_callbacks(app=app, end_point=DET_API_URL)

@@ -1,0 +1,10 @@
+version: "3"
+services:
+  detapp:
+    build: "./dashapp"
+    ports:
+      - "8050:8050"
+  detapi:
+    build: "./detector"
+    ports:
+      - "8066:8066"
