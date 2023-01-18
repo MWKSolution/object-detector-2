@@ -14,6 +14,15 @@ load_info = dbc.Modal([
     centered=True,
     is_open=False)
 
+cancel_button = dbc.Button(
+    children=['Cancel'],
+    size='lg',
+    n_clicks=0,
+    color='primary',
+    id='cancel-button',
+    className='p-4 m-4',
+    disabled=True)
+
 upload = dcc.Upload(["D'n'D or select JPEG"],
                     style={
                         'width'       : '90%',
@@ -33,11 +42,11 @@ image = html.Div([html.Img(src=None, id='image', style={'width': '60vw'})],
 
 main_layout = html.Div([
     dbc.Row([
-        dbc.Col(html.Div([upload, load_info, load_indicator], className="d-grid gap-2"), width=2),
+        dbc.Col(html.Div([upload, load_info, cancel_button, load_indicator], className="d-grid gap-2"), width=2),
         dbc.Col([image], width=10)])])
 
 nav_bar = dbc.NavbarSimple(
-    brand='Object detection JPEG',
+    brand="Cars detection from JPEG's",
     color='primary',
     dark=True)
 

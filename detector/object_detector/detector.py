@@ -35,6 +35,7 @@ class Detector:
     """Detector class"""
     def __init__(self, net_model=RESNET, confidence=0.5):
         """Initialize detection model"""
+        # set devices for cpu and gpu
         self.deviceCPU = torch.device("cpu")
         self.deviceGPU = torch.device("cuda") if torch.cuda.is_available() else None
         # get categories from file
@@ -43,6 +44,7 @@ class Detector:
         self.image = None
         self.orig = None
         self.result = None
+        # set models for cpu and gpu
         self.modelCPU = net_model(pretrained=True,
                                   progress=True,
                                   pretrained_backbone=True).to(self.deviceCPU)
@@ -78,6 +80,7 @@ class Detector:
         self.orig = self.image.copy()
         # convert BGR to RGB
         self.image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
+        # process image for loading to torch
         self.image = self.image.transpose((2, 0, 1))
         self.image = np.expand_dims(self.image, axis=0)
         self.image = self.image / 255.0
@@ -86,17 +89,17 @@ class Detector:
     def run_detection(self, device='cpu'):
         """Run detection.
          result dict:
-        'count' - number of detections
-        'boxes'  - list of bounding boxes
-        'labels - list of labels for boxes"""
+        'count': number of detections
+        'boxes': list of bounding boxes
+        'labels': list of labels for boxes"""
         # send image to the device
+        # run detection
         if device == 'gpu' and self.deviceGPU:
             self.image = self.image.to(self.deviceGPU)
             detections = self.modelGPU(self.image)[0]
         else:
             self.image = self.image.to(self.deviceCPU)
             detections = self.modelCPU(self.image)[0]
-        # run detection
         # loop over detections
         result = dict(count=0, boxes=[], labels=[])
         count = 0
@@ -116,37 +119,25 @@ class Detector:
     def get_result_image(self):
         """Draw boxes and put labels on the result image using result dict."""
         count = self.result['count']
-        # loop over boxes and labels
+        # loop over boxes and labels and draw them on the orig image
         for box, label in zip(self.result["boxes"], self.result['labels']):
             (startX, startY, endX, endY) = box
-            cv2.rectangle(self.orig, (startX, startY), (endX, endY),
-                              COLOR, 2)
+            cv2.rectangle(self.orig, (startX, startY), (endX, endY), COLOR, 2)
             y = startY - 15 if startY - 15 > 15 else startY + 15
             cv2.putText(self.orig, label, (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, COLOR, 2)
+        # put boxes count
         title = f'Count: {count}'
         cv2.putText(self.orig, title, (0, 30),
                     cv2.FONT_HERSHEY_DUPLEX, 1, COLOR, 3)
 
     def save_result_image_to_file(self, image_path):
-        # save result
+        """save result to file"""
         cv2.imwrite(image_path, self.orig)
 
     def save_result_image_to_bytes(self):
+        """return result image as bytes"""
         _, encoded_img = cv2.imencode('.jpg', self.orig)
         b64_encoded_img = base64.b64encode(encoded_img)
         return b64_encoded_img
 
-
-if __name__ == '__main__':
-    # test detector
-    d = Detector()
-    d.load_image_from_file('detector/object_detector/images/test_1.jpg')
-    d.image_resize()
-    d.image_prepare()
-    result = d.run_detection('any')
-    d.get_result_image()
-    d.save_result_image_to_file('detector/object_detector/images/test_1.jpg')
-    print('Count: ', result['count'])
-    print('Boxes: ', result['boxes'])
-    print('Labels: ', result['labels'])
 

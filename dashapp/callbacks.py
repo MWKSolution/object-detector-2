@@ -1,19 +1,23 @@
-from dash.dependencies import Input, Output, State
-import base64
+from dash import Input, Output, State
 from requests import post, exceptions
+import base64
 
 
-def get_callbacks(app, end_point):
+def get_callbacks_as_tasks(app, end_point):
 
     # load image and detect callback
-    @app.callback([Output('upload-data', 'contents'),
-                   Output('loading', 'children'),
-                   Output('load-info', 'is_open'),
-                   Output('load-info-text', 'children'),
-                   Output('image', 'src')],
-                  Input('upload-data', 'contents'),
-                  State('upload-data', 'filename'))
-    def upload_data(content, filename):
+    @app.long_callback([Output('upload-data', 'contents'),
+                        Output('loading', 'children'),
+                        Output('load-info', 'is_open'),
+                        Output('load-info-text', 'children'),
+                        Output('image', 'src')],
+                       Input('upload-data', 'contents'),
+                       State('upload-data', 'filename'),
+                       running=[(Output('image', 'src'), None, None),
+                                (Output('upload-data', 'disabled'), True, False),
+                                (Output('cancel-button', 'disabled'), False, True)],
+                       cancel=Input('cancel-button', 'n_clicks'))
+    def run_detection(content, filename):
         src = None
         if content:
             content_type, content_data = content.split(',')
