@@ -7,9 +7,12 @@ from celery import Celery
 from layouts import app_layout
 from callbacks import get_callbacks_as_tasks
 
+# celery_app = Celery('worker',
+#                     broker="redis://192.168.99.100:6379/0",
+#                     backend="redis://192.168.99.100:6379/1")
 celery_app = Celery('worker',
-                    broker="redis://192.168.99.100:6379/0",
-                    backend="redis://192.168.99.100:6379/1")
+                    broker="redis://redis:6379/0",
+                    backend="redis://redis:6379/1")
 
 long_callback_manager = CeleryLongCallbackManager(celery_app)
 
@@ -25,8 +28,8 @@ dash_app.layout = app_layout
 server = dash_app.server
 
 # detector API end point
-# DET_API_URL = r'http://detapi:8066/image'
-DET_API_URL = r'http://127.0.0.1:8066/image'
+DET_API_URL = r'http://detapi:8066/image'
+# DET_API_URL = r'http://127.0.0.1:8066/image'
 
 # Dash app callbacks import
 get_callbacks_as_tasks(app=dash_app, end_point=DET_API_URL)

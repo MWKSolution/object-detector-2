@@ -36,17 +36,17 @@ upload = dcc.Upload(["D'n'D or select JPEG"],
                     multiple=False,
                     className='m-3')
 
-image = html.Div([html.Img(src=None, id='image', style={'width': '60vw'})],
+image = html.Div([html.Img(src=None, id='image', style={'width': '60vw'}), load_indicator],
                  style={'textAlign': 'center'},
                  className='mt-3')
 
 main_layout = html.Div([
     dbc.Row([
-        dbc.Col(html.Div([upload, load_info, cancel_button, load_indicator], className="d-grid gap-2"), width=2),
+        dbc.Col(html.Div([upload, load_info, cancel_button], className="d-grid gap-2"), width=2),
         dbc.Col([image], width=10)])])
 
 nav_bar = dbc.NavbarSimple(
-    brand="Cars detection from JPEG's",
+    brand="Object detection from JPEG's",
     color='primary',
     dark=True)
 

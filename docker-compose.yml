@@ -1,10 +1,24 @@
 version: "3"
 services:
-  detapp:
-    build: "./dashapp"
-    ports:
-      - "8050:8050"
   detapi:
     build: "./detector"
     ports:
       - "8066:8066"
+    restart: on-failure
+  redis:
+    build: "./redis"
+    ports:
+      - "6379:6379"
+  worker:
+    build: "./dashapp"
+    command: "celery -A detapp --loader celery_app worker -l INFO"
+    depends_on:
+      - redis
+  detapp:
+    build: "./dashapp"
+    ports:
+      - "8050:8050"
+    command: "gunicorn -b 0.0.0.0:8050 detapp:server"
+    depends_on:
+      - redis
+      - worker

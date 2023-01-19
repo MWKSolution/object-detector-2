@@ -21,6 +21,8 @@ RETINANET = detection.retinanet_resnet50_fpn
 
 # what is considered as a car: car, truck, bus
 CARS = [3, 6, 8]
+ALL = range(1, 91)
+FIND = ALL
 
 # color for bounding boxes and text - blue
 COLOR = [255, 0, 0]
@@ -107,11 +109,11 @@ class Detector:
             confidence = detections["scores"][i]
             idx = int(detections["labels"][i])
             # when condition is met append to list of boxes and labels
-            if idx in CARS and confidence > self.confidence:
+            if idx in FIND and confidence > self.confidence:
                 count += 1
                 box = detections["boxes"][i].detach().cpu().numpy()
                 result['boxes'].append(box.astype("int").tolist())
-                result['labels'].append(f"{self.categories[idx - 1]['name']} {confidence * 100:.2f}%")
+                result['labels'].append(f"{self.categories[idx-1]['name']} {confidence * 100:.2f}%")
         result['count'] = count
         self.result = result
         return result
@@ -122,13 +124,13 @@ class Detector:
         # loop over boxes and labels and draw them on the orig image
         for box, label in zip(self.result["boxes"], self.result['labels']):
             (startX, startY, endX, endY) = box
-            cv2.rectangle(self.orig, (startX, startY), (endX, endY), COLOR, 2)
+            cv2.rectangle(self.orig, (startX, startY), (endX, endY), COLOR, 1)
             y = startY - 15 if startY - 15 > 15 else startY + 15
-            cv2.putText(self.orig, label, (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, COLOR, 2)
+            cv2.putText(self.orig, label, (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, COLOR, 1)
         # put boxes count
         title = f'Count: {count}'
         cv2.putText(self.orig, title, (0, 30),
-                    cv2.FONT_HERSHEY_DUPLEX, 1, COLOR, 3)
+                    cv2.FONT_HERSHEY_DUPLEX, 1, COLOR, 2)
 
     def save_result_image_to_file(self, image_path):
         """save result to file"""
