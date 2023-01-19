@@ -3,7 +3,7 @@ from torchvision.models import detection
 import numpy as np
 import torch
 import cv2
-from .coco_categories import get_categories
+from .coco_categories import COCO_NAMES
 import warnings
 import base64
 from os import path
@@ -21,9 +21,10 @@ RETINANET = detection.retinanet_resnet50_fpn
 
 # what is considered as a car: car, truck, bus
 CARS = [3, 6, 8]
+# all detectable objects
 ALL = range(1, 91)
+# what to be detected
 FIND = ALL
-
 # color for bounding boxes and text - blue
 COLOR = [255, 0, 0]
 
@@ -40,11 +41,13 @@ class Detector:
         # set devices for cpu and gpu
         self.deviceCPU = torch.device("cpu")
         self.deviceGPU = torch.device("cuda") if torch.cuda.is_available() else None
-        # get categories from file
-        self.categories = get_categories()
+        # detection confidence threshold
         self.confidence = confidence
+        # loaded image
         self.image = None
+        # copy of loaded image to put bounding boxes and label on it
         self.orig = None
+        # result dictionary of boxes and labels, and count of detection
         self.result = None
         # set models for cpu and gpu
         self.modelCPU = net_model(pretrained=True,
@@ -77,7 +80,7 @@ class Detector:
             self.image = cv2.resize(self.image, dim, interpolation=cv2.INTER_AREA)
 
     def image_prepare(self):
-        """Process image for detection"""
+        """Preprocess image for detection with torchvision"""
         # keep copy of original image - without processing
         self.orig = self.image.copy()
         # convert BGR to RGB
@@ -106,14 +109,20 @@ class Detector:
         result = dict(count=0, boxes=[], labels=[])
         count = 0
         for i in range(0, len(detections["boxes"])):
+            # get confidence of detection
             confidence = detections["scores"][i]
+            # get index of COCO class
             idx = int(detections["labels"][i])
             # when condition is met append to list of boxes and labels
             if idx in FIND and confidence > self.confidence:
                 count += 1
+                # detach bounding box from detection results
                 box = detections["boxes"][i].detach().cpu().numpy()
+                # add this box to list
                 result['boxes'].append(box.astype("int").tolist())
-                result['labels'].append(f"{self.categories[idx-1]['name']} {confidence * 100:.2f}%")
+                # add its label
+                result['labels'].append(f"{COCO_NAMES[idx]} {confidence * 100:.2f}%")
+        # add total count of detections
         result['count'] = count
         self.result = result
         return result
@@ -121,7 +130,7 @@ class Detector:
     def get_result_image(self):
         """Draw boxes and put labels on the result image using result dict."""
         count = self.result['count']
-        # loop over boxes and labels and draw them on the orig image
+        # loop over boxes and labels and draw them on the original (self.orig) image
         for box, label in zip(self.result["boxes"], self.result['labels']):
             (startX, startY, endX, endY) = box
             cv2.rectangle(self.orig, (startX, startY), (endX, endY), COLOR, 1)

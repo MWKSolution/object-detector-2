@@ -6,6 +6,7 @@ import base64
 def get_callbacks_as_tasks(app, end_point):
 
     # load image and detect callback
+    # Dash is wrapping up tasks for celery !!!
     @app.long_callback([Output('upload-data', 'contents'),
                         Output('loading', 'children'),
                         Output('load-info', 'is_open'),
@@ -25,6 +26,7 @@ def get_callbacks_as_tasks(app, end_point):
             if content_type == 'data:image/jpeg;base64':
                 img = base64.b64decode(content_data)
                 files = {'image': img}
+                # use cpu device for detection
                 params = {'device': 'cpu'}
                 try:
                     r = post(end_point, params=params, files=files)
@@ -34,7 +36,7 @@ def get_callbacks_as_tasks(app, end_point):
                 except exceptions.RequestException as e:
                     return None, None, True, f'API error! {e}', src
 
-                # get object detection image and show it
+                # get object detection image and then show it
                 src = f'data:image/jpg;base64,{r.content.decode()}'
                 return None, None, False, None, src
             else:
